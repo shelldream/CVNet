@@ -7,20 +7,29 @@
 import sys
 reload(sys).setdefaultencoding("utf-8")
 import multiprocessing
-import matplotlib.image as mpimg # mpimg 用于读取图片
+
+import matplotlib
+matplotlib.use('Agg')
+from PIL import Image
+from pylab import *
+
 import tensorflow as tf
+import numpy as np
 
 def read_image(filename, label):
     """读取单张图片
     """
-    data = mpimg.imread(filename)
+    axis('off')
+    data = Image.open(filename)
+    data = data.resize((80, 80))
+    data = np.array(data)
     return data, label
 
 
 class ImageBatchReader(object):
     """图像批量读取类
     """
-    def __init__(self, filename_list, label_list, batch_size=50):
+    def __init__(self, filename_list, label_list, batch_size=300):
         """
         Args:
             filename_list: list, 
@@ -38,7 +47,7 @@ class ImageBatchReader(object):
         self.labels_tensor = tf.convert_to_tensor(label_list, dtype=tf.int64)
         self.batch_size = batch_size
 
-    def getOneBatch(self, process=30):
+    def getOneBatch(self, process=5):
         """ Get one data batch.
             Args:
                 process: 多进程读取图像的进程数
@@ -64,6 +73,13 @@ class ImageBatchReader(object):
                 one_batch.append(res)
             pool.close()
             pool.join()
-            images = [item[0] for item in one_batch]
-            labels = [item[1] for item in one_batch]
+            images = np.array([item[0] for item in one_batch])
+            labels = np.array([item[1] for item in one_batch])
             return images, labels
+
+if __name__ == "__main__":
+    data, label = read_image("/export/sdb/huangxiaojun/MNIST/mnist_data/IMG/imgs_test/0_7.png", 7)
+    print data.shape 
+    import matplotlib.pyplot as plt # plt 用于显示图片
+    plt.imshow(data)
+    plt.savefig("raw_img")

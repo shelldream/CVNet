@@ -55,7 +55,7 @@ class AdditiveGaussianNoiseAutoEncoder(object):
         self.cost = tf.reduce_sum(tf.pow(tf.subtract(self.reconstruction, self.x), 2.0))
         self.optimizer = optimizer.minimize(self.cost)
         init = tf.global_variables_initializer()
-        self.sess = tf.session()
+        self.sess = tf.Session()
         self.sess.run(init)
 
     def _initialize_weights(self):
@@ -115,4 +115,3 @@ class AdditiveGaussianNoiseAutoEncoder(object):
         """返回隐含层的偏置系数"""
         return self.sess.run(self.weights["b1"])
 
- 
