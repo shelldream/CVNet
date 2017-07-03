@@ -6,27 +6,16 @@
 """
 import sys
 reload(sys).setdefaultencoding("utf-8")
+sys.path.append("../common")
+sys.path.append("./common")
+
+from tools import xavier_init
 import os
 import numpy as np
 import tensorflow as tf
 
-
-def xavier_init(fan_in, fan_out, constant=1):
-    """xavier 初始化器
-       Args:
-           fan_in: 输入节点个数
-           fan_out: 输出节点个数
-           constant: 常数系数
-       Returns:
-           res: tensor, 均匀分布,方差为特定值的tensor
-    """
-    low = -constant * np.sqrt(6.0 /(fan_in + fan_out))
-    high = constant * np.sqrt(6.0 /(fan_in + fan_out))
-    res = tf.random_uniform((fan_in, fan_out), minval=low, maxval=high, dtype=tf.float32)
-    return res
-
 class AdditiveGaussianNoiseAutoEncoder(object):
-    def __init__(self, n_input, n_hidden, transfer_function=tf.nn.softplus, \
+    def __init__(self, sess, n_input, n_hidden, transfer_function=tf.nn.softplus, \
         optimizer=tf.train.AdamOptimizer(), scale=1.0):
         """
             Args:
@@ -55,8 +44,15 @@ class AdditiveGaussianNoiseAutoEncoder(object):
         self.cost = tf.reduce_sum(tf.pow(tf.subtract(self.reconstruction, self.x), 2.0))
         self.optimizer = optimizer.minimize(self.cost)
         init = tf.global_variables_initializer()
-        self.sess = tf.Session()
+        self.sess = sess
         self.sess.run(init)
+
+        #模型保存
+        self.saver = tf.train.Saver()
+        self.default_save_path = "./model/model_default.ckpt"
+        if not os.path.exists("./model"):
+            os.popen("mkdir -p ./model")
+    
 
     def _initialize_weights(self):
         """初始化网络中的参数"""
@@ -114,4 +110,25 @@ class AdditiveGaussianNoiseAutoEncoder(object):
     def getBiases(self):
         """返回隐含层的偏置系数"""
         return self.sess.run(self.weights["b1"])
+    
+    def save_model(self, save_path=None):
+        """保存模型至特定路径"""
+        if save_path is not None:
+            self.save_path = save_path
+        else:
+            self.save_path = self.default_save_path
+        self.saver.save(self.sess, save_path)
+        print "The model has been saved in the file: %s"%self.save_path
 
+    def load_model(self, save_path=None):
+        """载入已有模型"""
+        if save_path is not None:
+            self.save_path = save_path
+        else:
+            self.save_path = self.default_save_path
+
+        if os.path.exists(self.save_path):
+            self.saver.restore(self.save_path)
+            print "The model %s has been loaded!"%self.save_path
+        else:
+            print "The model %s does not exsit!"%self.save_path
