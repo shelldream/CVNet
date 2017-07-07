@@ -16,11 +16,21 @@ from pylab import *
 import numpy as np
 import random 
 
-def read_image(filename, label, size=30):
+def read_image(filename, label, size=30, mode=None):
     """读取单张图片
+        Args:
+            fiename:
+            label:
+            size:
+            mode:
+        Returns:
+            data:
+            label:
     """
     axis('off')
     data = Image.open(filename)
+    if mode is not None:
+        data = data.convert(mode=mode)
     data = data.resize((size, size))
     data = np.array(data)
     return data, label
@@ -29,7 +39,7 @@ def read_image(filename, label, size=30):
 class ImageBatchReader(object):
     """图像批量读取类
     """
-    def __init__(self, filename_list, label_list, batch_size=300, process=5, pic_size=30):
+    def __init__(self, filename_list, label_list, batch_size=300, process=5, pic_size=30, mode=None):
         """
         Args:
             sess: 
@@ -50,6 +60,7 @@ class ImageBatchReader(object):
         self.batch_size = batch_size
         self.process = process
         self.pic_size = pic_size
+        self.mode = mode
          
     def _multiReader(self, filename_label_list):
         """ 
@@ -62,7 +73,7 @@ class ImageBatchReader(object):
         pool = multiprocessing.Pool(self.process)
         one_batch = []
         for (filename, label) in filename_label_list:
-            res = pool.apply_async(read_image, (filename, label, self.pic_size)).get()
+            res = pool.apply_async(read_image, (filename, label, self.pic_size, self.mode)).get()
             one_batch.append(res)
         pool.close()
         pool.join()
@@ -70,7 +81,7 @@ class ImageBatchReader(object):
         labels = np.array([item[1] for item in one_batch])
         return images, labels
 
-    def getRandomOneBatch(batch_size=None):
+    def getRandomOneBatch(self, batch_size=None):
         """
         """
         if batch_size is None:
@@ -94,8 +105,9 @@ class ImageBatchReader(object):
         return self._multiReader(self.filename_label_list)
      
 if __name__ == "__main__":
-    data, label = read_image("/export/sdb/shelldream/MNIST/mnist_data/IMG/imgs_test/0_7.png", 7)
-    print data.shape 
+    data, label = read_image("/export/sdb/shelldream/MNIST/mnist_data/IMG/imgs_test/0_7.png", 7, 28, "L")
+    data = data/255.0
+    print data 
     import matplotlib.pyplot as plt # plt 用于显示图片
     plt.imshow(data)
     plt.savefig("raw_img")
